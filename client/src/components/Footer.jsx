@@ -48,7 +48,7 @@ function Footer() {
             </a>
 
             <a
-              href="https://github.com/mahtab89/hypixel-auction-notifier"
+              href="https://github.com/mahtab89/HYPIXEL-NOTIFIER"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 px-3 py-1 bg-gray-700/50 rounded-full hover:bg-gray-700 transition-colors duration-200"
