@@ -89,6 +89,57 @@ app.get('/api/check-username/:username', async (req, res) => {
   }
 });
 
+// Add this new endpoint for username suggestions
+app.get('/api/username-suggestions/:username', async (req, res) => {
+  const { username } = req.params;
+  
+  try {
+    // First try to get an exact match
+    const exactResponse = await fetch(`https://api.mojang.com/users/profiles/minecraft/${username}`);
+    let suggestions = [];
+
+    if (exactResponse.ok) {
+      const exactData = await exactResponse.json();
+      suggestions.push(exactData.name);
+    }
+
+    // Then try to get similar usernames
+    const response = await fetch('https://api.mojang.com/profiles/minecraft', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify([
+        username,
+        `${username}_`,
+        `_${username}`,
+        `${username}1`,
+        `${username}2`,
+        `${username}3`,
+        `${username}Pro`,
+        `Pro${username}`,
+        `${username}Gaming`,
+        `Gaming${username}`,
+      ].slice(0, 10))
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      const newSuggestions = data
+        .map(player => player.name)
+        .filter(name => name.toLowerCase().includes(username.toLowerCase()))
+        .filter(name => !suggestions.includes(name));
+
+      suggestions = [...suggestions, ...newSuggestions];
+    }
+
+    res.json({ suggestions: suggestions.slice(0, 5) });
+  } catch (error) {
+    console.error('Error fetching username suggestions:', error);
+    res.status(500).json({ error: 'Failed to fetch suggestions' });
+  }
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Unhandled Error:', err);

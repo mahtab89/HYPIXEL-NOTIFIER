@@ -33,60 +33,17 @@ function UsernameForm({ username, setUsername, onUsernameValidation }) {
 
     setIsLoading(true)
     try {
-      // First try to get an exact match
-      const exactResponse = await fetch(`https://api.mojang.com/users/profiles/minecraft/${value}`)
-      let suggestions = []
+      // Use our backend endpoint instead of calling Mojang directly
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/username-suggestions/${value}`)
+      const data = await response.json()
 
-      if (exactResponse.ok) {
-        const exactData = await exactResponse.json()
-        suggestions.push(exactData.name)
+      if (data.suggestions) {
+        setSuggestions(data.suggestions)
+        setShowSuggestions(data.suggestions.length > 0)
+      } else {
+        setSuggestions([])
+        setShowSuggestions(false)
       }
-
-      // Then try to get similar usernames using the Minecraft API
-      const response = await fetch(`https://api.mojang.com/profiles/minecraft`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify([
-          value,
-          `${value}_`,
-          `_${value}`,
-          `${value}1`,
-          `${value}2`,
-          `${value}3`,
-          `${value}Pro`,
-          `Pro${value}`,
-          `${value}Gaming`,
-          `Gaming${value}`,
-        ].slice(0, 10))
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        const newSuggestions = data
-          .map(player => player.name)
-          .filter(name => name.toLowerCase().includes(value.toLowerCase()))
-          .filter(name => !suggestions.includes(name))
-
-        suggestions = [...suggestions, ...newSuggestions]
-      }
-
-      // Sort suggestions
-      suggestions.sort((a, b) => {
-        const aLower = a.toLowerCase()
-        const bLower = b.toLowerCase()
-        const searchLower = value.toLowerCase()
-
-        if (aLower === searchLower) return -1
-        if (bLower === searchLower) return 1
-        if (aLower.startsWith(searchLower) && !bLower.startsWith(searchLower)) return -1
-        if (!aLower.startsWith(searchLower) && bLower.startsWith(searchLower)) return 1
-        return aLower.localeCompare(bLower)
-      })
-
-      setSuggestions(suggestions.slice(0, 5))
-      setShowSuggestions(suggestions.length > 0)
     } catch (error) {
       console.error('Error fetching suggestions:', error)
       setSuggestions([])
