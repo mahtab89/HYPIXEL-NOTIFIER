@@ -14,8 +14,8 @@ function UsernameForm({ username, setUsername, onUsernameValidation }) {
     }
 
     try {
-      // Use inputValue instead of username since username hasn't been set yet
-      const response = await fetch(`/api/check-username/${inputValue.trim()}`)
+      // Use the complete backend URL
+      const response = await fetch(`https://hypixel-notifier-backend.onrender.com/api/check-username/${inputValue.trim()}`)
       const data = await response.json()
       
       if (data.exists) {
