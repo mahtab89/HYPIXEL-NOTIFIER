@@ -3,7 +3,6 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import NodeCache from 'node-cache';
 import { router } from './auction.routes.js';
-import fetch from 'node-fetch';
 
 dotenv.config();
 
