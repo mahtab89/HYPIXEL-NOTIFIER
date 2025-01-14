@@ -20,7 +20,6 @@ function UsernameForm({ username, setUsername, onUsernameValidation }) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Debounce function to prevent too many API calls
   const debounce = (func, wait) => {
     let timeout
     return (...args) => {
@@ -30,38 +29,64 @@ function UsernameForm({ username, setUsername, onUsernameValidation }) {
   }
 
   const fetchSuggestions = async (value) => {
-    if (value.length < 2) return
+    if (value.length < 3) return
 
     setIsLoading(true)
     try {
-      // Using PlayerDB API for better username suggestions
-      const response = await fetch(`https://playerdb.co/api/player/minecraft/${value}*`)
-      const data = await response.json()
-      
-      if (data.success && data.data && data.data.players) {
-        // Filter and sort suggestions
-        const suggestions = data.data.players
-          .map(player => player.username)
-          .filter(name => name.toLowerCase().includes(value.toLowerCase()))
-          .sort((a, b) => {
-            // Sort exact matches first, then by starts with, then alphabetically
-            const aLower = a.toLowerCase()
-            const bLower = b.toLowerCase()
-            const searchLower = value.toLowerCase()
-            
-            if (aLower === searchLower) return -1
-            if (bLower === searchLower) return 1
-            if (aLower.startsWith(searchLower) && !bLower.startsWith(searchLower)) return -1
-            if (!aLower.startsWith(searchLower) && bLower.startsWith(searchLower)) return 1
-            return aLower.localeCompare(bLower)
-          })
-          .slice(0, 5) // Limit to 5 suggestions
+      // First try to get an exact match
+      const exactResponse = await fetch(`https://api.mojang.com/users/profiles/minecraft/${value}`)
+      let suggestions = []
 
-        setSuggestions(suggestions)
-        setShowSuggestions(true)
-      } else {
-        setSuggestions([])
+      if (exactResponse.ok) {
+        const exactData = await exactResponse.json()
+        suggestions.push(exactData.name)
       }
+
+      // Then try to get similar usernames using the Minecraft API
+      const response = await fetch(`https://api.mojang.com/profiles/minecraft`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify([
+          value,
+          `${value}_`,
+          `_${value}`,
+          `${value}1`,
+          `${value}2`,
+          `${value}3`,
+          `${value}Pro`,
+          `Pro${value}`,
+          `${value}Gaming`,
+          `Gaming${value}`,
+        ].slice(0, 10))
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        const newSuggestions = data
+          .map(player => player.name)
+          .filter(name => name.toLowerCase().includes(value.toLowerCase()))
+          .filter(name => !suggestions.includes(name))
+
+        suggestions = [...suggestions, ...newSuggestions]
+      }
+
+      // Sort suggestions
+      suggestions.sort((a, b) => {
+        const aLower = a.toLowerCase()
+        const bLower = b.toLowerCase()
+        const searchLower = value.toLowerCase()
+
+        if (aLower === searchLower) return -1
+        if (bLower === searchLower) return 1
+        if (aLower.startsWith(searchLower) && !bLower.startsWith(searchLower)) return -1
+        if (!aLower.startsWith(searchLower) && bLower.startsWith(searchLower)) return 1
+        return aLower.localeCompare(bLower)
+      })
+
+      setSuggestions(suggestions.slice(0, 5))
+      setShowSuggestions(suggestions.length > 0)
     } catch (error) {
       console.error('Error fetching suggestions:', error)
       setSuggestions([])
@@ -70,14 +95,13 @@ function UsernameForm({ username, setUsername, onUsernameValidation }) {
     }
   }
 
-  // Debounced version of fetchSuggestions
   const debouncedFetchSuggestions = debounce(fetchSuggestions, 300)
 
   const handleInputChange = (e) => {
     const value = e.target.value
     setInputValue(value)
     
-    if (value.length >= 2) {
+    if (value.length >= 3) {
       debouncedFetchSuggestions(value)
     } else {
       setSuggestions([])
