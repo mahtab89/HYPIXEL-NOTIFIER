@@ -6,7 +6,7 @@ import AuctionDetailsModal from './AuctionDetailsModal'
 
 function AuctionList({ username }) {
   const [auctions, setAuctions] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [filter, setFilter] = useState('all')
   const [showFilterMenu, setShowFilterMenu] = useState(false)
@@ -15,14 +15,32 @@ function AuctionList({ username }) {
   const [selectedAuction, setSelectedAuction] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
 
-  const API_URL = 'https://hypixel-notifier-backend.onrender.com'
+  const handleSearch = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch(`/api/auctions/search?player=${searchTerm}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch auctions')
+      }
+      const data = await response.json()
+      setAuctions(data)
+    } catch (err) {
+      setError(err.message)
+      console.error('Error fetching auctions:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
     if (username) {
       setLoading(true)
       setError(null)
       
-      fetch(`${API_URL}/api/auctions/search?player=${username}`)
+      fetch(`/api/auctions/search?player=${username}`)
         .then(response => {
           if (!response.ok) {
             throw new Error('Failed to fetch auctions')
@@ -40,26 +58,6 @@ function AuctionList({ username }) {
         })
     }
   }, [username])
-
-  const handleSearch = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
-
-    try {
-      const response = await fetch(`${API_URL}/api/auctions/search?player=${searchTerm}`)
-      if (!response.ok) {
-        throw new Error('Failed to fetch auctions')
-      }
-      const data = await response.json()
-      setAuctions(data)
-    } catch (err) {
-      setError(err.message)
-      console.error('Error fetching auctions:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const filteredAuctions = auctions.filter(auction => {
     if (filter === 'all') return true
