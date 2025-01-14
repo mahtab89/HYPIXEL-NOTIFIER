@@ -15,12 +15,14 @@ function AuctionList({ username }) {
   const [selectedAuction, setSelectedAuction] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
 
+  const API_URL = 'https://hypixel-notifier-backend.onrender.com'
+
   useEffect(() => {
     if (username) {
       setLoading(true)
       setError(null)
       
-      fetch(`/api/auctions/search?player=${username}`)
+      fetch(`${API_URL}/api/auctions/search?player=${username}`)
         .then(response => {
           if (!response.ok) {
             throw new Error('Failed to fetch auctions')
@@ -45,7 +47,7 @@ function AuctionList({ username }) {
     setError(null)
 
     try {
-      const response = await fetch(`/api/auctions/search?player=${searchTerm}`)
+      const response = await fetch(`${API_URL}/api/auctions/search?player=${searchTerm}`)
       if (!response.ok) {
         throw new Error('Failed to fetch auctions')
       }
