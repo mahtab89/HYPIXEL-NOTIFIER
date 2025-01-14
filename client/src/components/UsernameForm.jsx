@@ -6,6 +6,7 @@ function UsernameForm({ username, setUsername, onUsernameValidation }) {
   const [suggestions, setSuggestions] = useState([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const suggestionBoxRef = useRef(null)
+  const [isLoading, setIsLoading] = useState(false)
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -24,18 +25,33 @@ function UsernameForm({ username, setUsername, onUsernameValidation }) {
     setInputValue(value)
 
     if (value.length >= 2) {
+      setIsLoading(true)
       try {
-        const response = await fetch(`https://api.mojang.com/users/profiles/minecraft/${value}`)
+        // Using the Minecraft player name history API
+        const response = await fetch(`https://api.ashcon.app/mojang/v2/user/${value}`)
         if (response.ok) {
           const data = await response.json()
-          setSuggestions([data.name])
+          // Get username history and extract unique names
+          const nameHistory = data.username_history || []
+          const suggestions = [...new Set(nameHistory.map(entry => entry.username))]
+          setSuggestions(suggestions)
           setShowSuggestions(true)
         } else {
-          setSuggestions([])
+          // Try to get similar usernames
+          const altResponse = await fetch(`https://api.mojang.com/users/profiles/minecraft/${value}`)
+          if (altResponse.ok) {
+            const altData = await altResponse.json()
+            setSuggestions([altData.name])
+            setShowSuggestions(true)
+          } else {
+            setSuggestions([])
+          }
         }
       } catch (error) {
         console.error('Error fetching suggestions:', error)
         setSuggestions([])
+      } finally {
+        setIsLoading(false)
       }
     } else {
       setSuggestions([])
@@ -86,17 +102,21 @@ function UsernameForm({ username, setUsername, onUsernameValidation }) {
             placeholder="Enter Minecraft username"
             className="w-full px-3 sm:px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-100 placeholder-gray-400"
           />
-          {showSuggestions && suggestions.length > 0 && (
+          {showSuggestions && (suggestions.length > 0 || isLoading) && (
             <div className="absolute w-full mt-1 bg-gray-800 border border-gray-700 rounded shadow-lg z-10">
-              {suggestions.map((suggestion, index) => (
-                <div
-                  key={index}
-                  className="px-4 py-2 hover:bg-gray-700 cursor-pointer text-gray-100"
-                  onClick={() => handleSuggestionClick(suggestion)}
-                >
-                  {suggestion}
-                </div>
-              ))}
+              {isLoading ? (
+                <div className="px-4 py-2 text-gray-400">Loading...</div>
+              ) : (
+                suggestions.map((suggestion, index) => (
+                  <div
+                    key={index}
+                    className="px-4 py-2 hover:bg-gray-700 cursor-pointer text-gray-100"
+                    onClick={() => handleSuggestionClick(suggestion)}
+                  >
+                    {suggestion}
+                  </div>
+                ))
+              )}
             </div>
           )}
         </div>
