@@ -7,25 +7,24 @@ function UsernameForm({ username, setUsername, onUsernameValidation }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    // First validate that there is input
     if (!inputValue.trim()) {
       toast.error('Please enter a username')
       return
     }
 
     try {
-      // Use the complete backend URL
-      const response = await fetch(`https://hypixel-notifier-backend.onrender.com/api/check-username/${inputValue.trim()}`)
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/check-username/${inputValue.trim()}`)
       const data = await response.json()
       
       if (data.exists) {
-        setUsername(inputValue.trim()) // Only set username if it exists
+        setUsername(inputValue.trim())
         onUsernameValidation(true)
       } else {
         setUsername(inputValue.trim())
         onUsernameValidation(false)
       }
     } catch (error) {
+      console.error('Error checking username:', error)
       toast.error('Error checking username')
       onUsernameValidation(false)
     }

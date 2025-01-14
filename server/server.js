@@ -18,19 +18,9 @@ const allowedOrigins = [
 ];
 
 app.use(cors({
-  origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) === -1) {
-      console.log('Origin attempted:', origin);
-      return callback(null, true); // Allow all origins in development
-    }
-    return callback(null, true);
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  origin: ['https://hypixel-notifier-frontend.onrender.com', 'http://localhost:5173'],
+  methods: ['GET', 'POST'],
+  credentials: true
 }));
 
 // Add OPTIONS handling
@@ -51,6 +41,25 @@ app.use((req, res, next) => {
 
 // Routes
 app.use('/api', router);
+
+// Add this new endpoint
+app.get('/api/check-username/:username', async (req, res) => {
+  try {
+    const { username } = req.params
+    
+    // Use your existing hypixel API function to check if user exists
+    const response = await fetch(`https://api.hypixel.net/player?key=${process.env.HYPIXEL_API_KEY}&name=${username}`)
+    const data = await response.json()
+    
+    // Hypixel API returns player: null when username doesn't exist
+    const exists = data.success && data.player !== null
+    
+    res.json({ exists })
+  } catch (error) {
+    console.error('Error checking username:', error)
+    res.status(500).json({ error: 'Failed to check username' })
+  }
+})
 
 // Error handling middleware
 app.use((err, req, res, next) => {
