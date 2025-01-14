@@ -1,16 +1,18 @@
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 
-function UsernameForm({ username, setUsername }) {
+function UsernameForm({ username, setUsername, onUsernameValidation }) {
   const [inputValue, setInputValue] = useState('')
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!inputValue.trim()) {
-      toast.error('Please enter a username')
-      return
+    try {
+      const response = await fetch(`/api/check-username/${username}`)
+      const data = await response.json()
+      onUsernameValidation(data.exists)
+    } catch (error) {
+      onUsernameValidation(false)
     }
-    setUsername(inputValue.trim())
   }
 
   return (

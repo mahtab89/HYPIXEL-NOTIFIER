@@ -8,6 +8,11 @@ import Footer from './components/Footer'
 function App() {
   const [username, setUsername] = useState('')
   const [activeTab, setActiveTab] = useState('auctions')
+  const [usernameExists, setUsernameExists] = useState(true)
+
+  const handleUsernameValidation = (exists) => {
+    setUsernameExists(exists)
+  }
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 flex flex-col">
@@ -28,10 +33,17 @@ function App() {
           
           <UsernameForm 
             username={username} 
-            setUsername={setUsername} 
+            setUsername={setUsername}
+            onUsernameValidation={handleUsernameValidation}
           />
 
-          {username && (
+          {username && !usernameExists && (
+            <div className="mt-4 text-center text-red-400">
+              This username does not exist
+            </div>
+          )}
+
+          {username && usernameExists && (
             <div className="mt-8">
               <div className="flex gap-2 sm:gap-4 mb-4 overflow-x-auto">
                 <button
