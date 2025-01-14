@@ -9,34 +9,36 @@ dotenv.config();
 const app = express();
 const cache = new NodeCache({ stdTTL: 60 });
 
-// Configure CORS to accept requests from your IP and localhost
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'http://192.168.227.55:5173', // Your IP address
-  'http://your.other.ip:5173'   // Add any other IPs you need
-];
+// Update CORS configuration
+const corsOptions = {
+  origin: [
+    'https://hypixel-notifier-frontend.onrender.com',
+    'http://localhost:5173',
+    'http://localhost:3000'
+  ],
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
 
-app.use(cors({
-  origin: ['https://hypixel-notifier-frontend.onrender.com', 'http://localhost:5173'],
-  methods: ['GET', 'POST'],
-  credentials: true
-}));
+// Apply CORS with options
+app.use(cors(corsOptions));
 
-// Add OPTIONS handling
-app.options('*', cors());
+// Pre-flight requests
+app.options('*', cors(corsOptions));
 
 app.use(express.json());
+
+// Add cache middleware
+app.use((req, res, next) => {
+  req.cache = cache;
+  next();
+});
 
 // Add health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
-});
-
-// Make cache available to routes
-app.use((req, res, next) => {
-  req.cache = cache;
-  next();
 });
 
 // Routes
@@ -92,6 +94,11 @@ app.get('/api/check-username/:username', async (req, res) => {
 // Add this new endpoint for username suggestions
 app.get('/api/username-suggestions/:username', async (req, res) => {
   const { username } = req.params;
+  
+  // Set CORS headers explicitly
+  res.header('Access-Control-Allow-Origin', 'https://hypixel-notifier-frontend.onrender.com');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   
   try {
     // First try to get an exact match
@@ -154,5 +161,5 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
-  console.log('Allowed origins:', allowedOrigins);
+  console.log('Allowed origins:', corsOptions.origin);
 });

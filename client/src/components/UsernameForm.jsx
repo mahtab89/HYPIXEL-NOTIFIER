@@ -33,8 +33,13 @@ function UsernameForm({ username, setUsername, onUsernameValidation }) {
 
     setIsLoading(true)
     try {
-      // Use our backend endpoint instead of calling Mojang directly
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/username-suggestions/${value}`)
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/username-suggestions/${value}`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
       const data = await response.json()
 
       if (data.suggestions) {
