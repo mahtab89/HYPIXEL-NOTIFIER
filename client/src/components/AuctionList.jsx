@@ -6,7 +6,7 @@ import AuctionDetailsModal from './AuctionDetailsModal'
 
 function AuctionList({ username }) {
   const [auctions, setAuctions] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [filter, setFilter] = useState('all')
   const [showFilterMenu, setShowFilterMenu] = useState(false)
