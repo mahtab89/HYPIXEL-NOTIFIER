@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import NodeCache from 'node-cache';
 import { router } from './auction.routes.js';
+import fetch from 'node-fetch';
 
 dotenv.config();
 
@@ -45,21 +46,49 @@ app.use('/api', router);
 // Add this new endpoint
 app.get('/api/check-username/:username', async (req, res) => {
   try {
-    const { username } = req.params
+    const { username } = req.params;
     
-    // Use your existing hypixel API function to check if user exists
-    const response = await fetch(`https://api.hypixel.net/player?key=${process.env.HYPIXEL_API_KEY}&name=${username}`)
-    const data = await response.json()
+    // Add cache check
+    const cacheKey = `username-${username}`;
+    const cachedResult = req.cache.get(cacheKey);
+    if (cachedResult !== undefined) {
+      return res.json({ exists: cachedResult });
+    }
+
+    // Make request to Hypixel API
+    const response = await fetch(`https://api.mojang.com/users/profiles/minecraft/${username}`);
     
-    // Hypixel API returns player: null when username doesn't exist
-    const exists = data.success && data.player !== null
+    // If the response is 204 or 404, the username doesn't exist
+    if (response.status === 204 || response.status === 404) {
+      req.cache.set(cacheKey, false);
+      return res.json({ exists: false });
+    }
+
+    const mojangData = await response.json();
     
-    res.json({ exists })
+    if (!mojangData || !mojangData.id) {
+      req.cache.set(cacheKey, false);
+      return res.json({ exists: false });
+    }
+
+    // Now check if the player exists in Hypixel
+    const hypixelResponse = await fetch(
+      `https://api.hypixel.net/player?key=${process.env.HYPIXEL_API_KEY}&uuid=${mojangData.id}`
+    );
+    
+    const hypixelData = await hypixelResponse.json();
+    
+    const exists = hypixelData.success && hypixelData.player !== null;
+    
+    // Cache the result
+    req.cache.set(cacheKey, exists);
+    
+    res.json({ exists });
   } catch (error) {
-    console.error('Error checking username:', error)
-    res.status(500).json({ error: 'Failed to check username' })
+    console.error('Error checking username:', error);
+    res.status(500).json({ error: 'Failed to check username', details: error.message });
   }
-})
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
