@@ -13,49 +13,31 @@ function AuctionList({ username }) {
   const filterRef = useRef()
   useClickOutside(filterRef, () => setShowFilterMenu(false))
   const [selectedAuction, setSelectedAuction] = useState(null)
-  const [searchTerm, setSearchTerm] = useState('')
-
-  const handleSearch = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
-
-    try {
-      const response = await fetch(`/api/auctions/search?player=${searchTerm}`)
-      if (!response.ok) {
-        throw new Error('Failed to fetch auctions')
-      }
-      const data = await response.json()
-      setAuctions(data)
-    } catch (err) {
-      setError(err.message)
-      console.error('Error fetching auctions:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   useEffect(() => {
+    const loadAuctions = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const data = await fetchPlayerAuctions(username)
+        
+        // Filter auctions that belong to the user
+        const userAuctions = data.filter(auction => 
+          auction.seller_name && 
+          auction.seller_name.toLowerCase() === username.toLowerCase()
+        )
+        
+        setAuctions(userAuctions)
+      } catch (error) {
+        setError(error.message)
+        toast.error('Failed to load auctions')
+      } finally {
+        setLoading(false)
+      }
+    }
+
     if (username) {
-      setLoading(true)
-      setError(null)
-      
-      fetch(`/api/auctions/search?player=${username}`)
-        .then(response => {
-          if (!response.ok) {
-            throw new Error('Failed to fetch auctions')
-          }
-          return response.json()
-        })
-        .then(data => {
-          setAuctions(data)
-          setLoading(false)
-        })
-        .catch(err => {
-          setError(err.message)
-          console.error('Error fetching auctions:', err)
-          setLoading(false)
-        })
+      loadAuctions()
     }
   }, [username])
 
