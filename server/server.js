@@ -95,52 +95,109 @@ app.get('/api/check-username/:username', async (req, res) => {
 app.get('/api/username-suggestions/:username', async (req, res) => {
   const { username } = req.params;
   
-  // Set CORS headers explicitly
   res.header('Access-Control-Allow-Origin', 'https://hypixel-notifier-frontend.onrender.com');
   res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   
   try {
-    // First try to get an exact match
-    const exactResponse = await fetch(`https://api.mojang.com/users/profiles/minecraft/${username}`);
-    let suggestions = [];
+    // Handle special characters like underscore
+    const searchParts = username.split('_');
+    let suggestions = new Set();
 
+    // Try exact match first
+    const exactResponse = await fetch(`https://api.mojang.com/users/profiles/minecraft/${username}`);
     if (exactResponse.ok) {
       const exactData = await exactResponse.json();
-      suggestions.push(exactData.name);
+      suggestions.add(exactData.name);
     }
 
-    // Then try to get similar usernames
-    const response = await fetch('https://api.mojang.com/profiles/minecraft', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify([
-        username,
-        `${username}_`,
-        `_${username}`,
-        `${username}1`,
-        `${username}2`,
-        `${username}3`,
-        `${username}Pro`,
-        `Pro${username}`,
-        `${username}Gaming`,
-        `Gaming${username}`,
-      ].slice(0, 10))
+    // Generate search patterns based on parts
+    const searchPatterns = [];
+    if (searchParts.length > 1) {
+      // Add full username
+      searchPatterns.push(username);
+      // Add first part
+      searchPatterns.push(searchParts[0]);
+      // Add combinations with underscore
+      searchPatterns.push(`${searchParts[0]}_`);
+      if (searchParts[1]) {
+        // Add second part
+        searchPatterns.push(searchParts[1]);
+        // Add partial combinations
+        searchPatterns.push(`${searchParts[0]}_${searchParts[1]}`);
+      }
+    } else {
+      // Single word username
+      searchPatterns.push(username);
+      searchPatterns.push(`${username}_`);
+      searchPatterns.push(`_${username}`);
+    }
+
+    // Add common variations
+    searchPatterns.push(...[
+      username,
+      `${username}1`,
+      `${username}2`,
+      `${username}_mc`,
+      `mc_${username}`,
+      `${username}_yt`,
+    ]);
+
+    // Remove duplicates and empty patterns
+    const uniquePatterns = [...new Set(searchPatterns.filter(p => p.trim()))];
+
+    // Search for each pattern
+    const searchPromises = uniquePatterns.map(pattern =>
+      fetch('https://api.mojang.com/profiles/minecraft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify([pattern])
+      }).then(r => r.ok ? r.json() : [])
+        .catch(() => [])
+    );
+
+    const results = await Promise.all(searchPromises);
+    
+    // Combine all results and filter
+    results.flat().forEach(player => {
+      if (player && player.name) {
+        const playerName = player.name.toLowerCase();
+        const searchLower = username.toLowerCase();
+        
+        // Add to suggestions if:
+        // 1. It's an exact match
+        // 2. It contains the search term
+        // 3. It contains all parts of the search term (for underscore searches)
+        if (playerName === searchLower ||
+            playerName.includes(searchLower) ||
+            searchParts.every(part => playerName.includes(part.toLowerCase()))) {
+          suggestions.add(player.name);
+        }
+      }
     });
 
-    if (response.ok) {
-      const data = await response.json();
-      const newSuggestions = data
-        .map(player => player.name)
-        .filter(name => name.toLowerCase().includes(username.toLowerCase()))
-        .filter(name => !suggestions.includes(name));
+    // Convert Set to Array and sort
+    const sortedSuggestions = [...suggestions].sort((a, b) => {
+      const aLower = a.toLowerCase();
+      const bLower = b.toLowerCase();
+      const searchLower = username.toLowerCase();
 
-      suggestions = [...suggestions, ...newSuggestions];
-    }
+      // Exact matches first
+      if (aLower === searchLower) return -1;
+      if (bLower === searchLower) return 1;
 
-    res.json({ suggestions: suggestions.slice(0, 5) });
+      // Then matches that start with the search term
+      if (aLower.startsWith(searchLower) && !bLower.startsWith(searchLower)) return -1;
+      if (!aLower.startsWith(searchLower) && bLower.startsWith(searchLower)) return 1;
+
+      // Then by length (shorter names first)
+      if (a.length !== b.length) return a.length - b.length;
+
+      // Finally alphabetically
+      return aLower.localeCompare(bLower);
+    });
+
+    res.json({ suggestions: sortedSuggestions.slice(0, 5) });
   } catch (error) {
     console.error('Error fetching username suggestions:', error);
     res.status(500).json({ error: 'Failed to fetch suggestions' });
