@@ -20,39 +20,65 @@ function UsernameForm({ username, setUsername, onUsernameValidation }) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const handleInputChange = async (e) => {
+  // Debounce function to prevent too many API calls
+  const debounce = (func, wait) => {
+    let timeout
+    return (...args) => {
+      clearTimeout(timeout)
+      timeout = setTimeout(() => func(...args), wait)
+    }
+  }
+
+  const fetchSuggestions = async (value) => {
+    if (value.length < 2) return
+
+    setIsLoading(true)
+    try {
+      // Using PlayerDB API for better username suggestions
+      const response = await fetch(`https://playerdb.co/api/player/minecraft/${value}*`)
+      const data = await response.json()
+      
+      if (data.success && data.data && data.data.players) {
+        // Filter and sort suggestions
+        const suggestions = data.data.players
+          .map(player => player.username)
+          .filter(name => name.toLowerCase().includes(value.toLowerCase()))
+          .sort((a, b) => {
+            // Sort exact matches first, then by starts with, then alphabetically
+            const aLower = a.toLowerCase()
+            const bLower = b.toLowerCase()
+            const searchLower = value.toLowerCase()
+            
+            if (aLower === searchLower) return -1
+            if (bLower === searchLower) return 1
+            if (aLower.startsWith(searchLower) && !bLower.startsWith(searchLower)) return -1
+            if (!aLower.startsWith(searchLower) && bLower.startsWith(searchLower)) return 1
+            return aLower.localeCompare(bLower)
+          })
+          .slice(0, 5) // Limit to 5 suggestions
+
+        setSuggestions(suggestions)
+        setShowSuggestions(true)
+      } else {
+        setSuggestions([])
+      }
+    } catch (error) {
+      console.error('Error fetching suggestions:', error)
+      setSuggestions([])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Debounced version of fetchSuggestions
+  const debouncedFetchSuggestions = debounce(fetchSuggestions, 300)
+
+  const handleInputChange = (e) => {
     const value = e.target.value
     setInputValue(value)
-
+    
     if (value.length >= 2) {
-      setIsLoading(true)
-      try {
-        // Using the Minecraft player name history API
-        const response = await fetch(`https://api.ashcon.app/mojang/v2/user/${value}`)
-        if (response.ok) {
-          const data = await response.json()
-          // Get username history and extract unique names
-          const nameHistory = data.username_history || []
-          const suggestions = [...new Set(nameHistory.map(entry => entry.username))]
-          setSuggestions(suggestions)
-          setShowSuggestions(true)
-        } else {
-          // Try to get similar usernames
-          const altResponse = await fetch(`https://api.mojang.com/users/profiles/minecraft/${value}`)
-          if (altResponse.ok) {
-            const altData = await altResponse.json()
-            setSuggestions([altData.name])
-            setShowSuggestions(true)
-          } else {
-            setSuggestions([])
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching suggestions:', error)
-        setSuggestions([])
-      } finally {
-        setIsLoading(false)
-      }
+      debouncedFetchSuggestions(value)
     } else {
       setSuggestions([])
       setShowSuggestions(false)
