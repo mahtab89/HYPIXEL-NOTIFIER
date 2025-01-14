@@ -6,11 +6,27 @@ function UsernameForm({ username, setUsername, onUsernameValidation }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    
+    // First validate that there is input
+    if (!inputValue.trim()) {
+      toast.error('Please enter a username')
+      return
+    }
+
     try {
-      const response = await fetch(`/api/check-username/${username}`)
+      // Use inputValue instead of username since username hasn't been set yet
+      const response = await fetch(`/api/check-username/${inputValue.trim()}`)
       const data = await response.json()
-      onUsernameValidation(data.exists)
+      
+      if (data.exists) {
+        setUsername(inputValue.trim()) // Only set username if it exists
+        onUsernameValidation(true)
+      } else {
+        setUsername(inputValue.trim())
+        onUsernameValidation(false)
+      }
     } catch (error) {
+      toast.error('Error checking username')
       onUsernameValidation(false)
     }
   }
