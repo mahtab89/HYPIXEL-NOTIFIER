@@ -28,3 +28,8 @@
 .font-bold {
   font-weight: 700;
 }
+
+/* Add fallback fonts */
+body {
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
