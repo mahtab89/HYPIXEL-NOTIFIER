@@ -1,41 +1,3 @@
-/* Define local font faces */
-@font-face {
-  font-family: 'Poppins';
-  src: local('Poppins Regular'), local('Poppins-Regular'),
-       url('./assets/fonts/Poppins-Regular.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Poppins';
-  src: local('Poppins Medium'), local('Poppins-Medium'),
-       url('./assets/fonts/Poppins-Medium.woff2') format('woff2');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Poppins';
-  src: local('Poppins SemiBold'), local('Poppins-SemiBold'),
-       url('./assets/fonts/Poppins-SemiBold.woff2') format('woff2');
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Poppins';
-  src: local('Poppins Bold'), local('Poppins-Bold'),
-       url('./assets/fonts/Poppins-Bold.woff2') format('woff2');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-/* Rest of your existing CSS */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -46,13 +8,27 @@
   }
 }
 
+/* Font weight utility classes */
+.font-light {
+  font-weight: 300;
+}
+
+.font-regular {
+  font-weight: 400;
+}
+
+.font-medium {
+  font-weight: 500;
+}
+
+.font-semibold {
+  font-weight: 600;
+}
+
+.font-bold {
+  font-weight: 700;
+}
+
 body {
   font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
-
-/* Your existing font weight utilities */
-.font-light { font-weight: 300; }
-.font-regular { font-weight: 400; }
-.font-medium { font-weight: 500; }
-.font-semibold { font-weight: 600; }
-.font-bold { font-weight: 700; }

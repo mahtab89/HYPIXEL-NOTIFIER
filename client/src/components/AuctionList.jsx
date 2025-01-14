@@ -16,17 +16,12 @@ function AuctionList({ username }) {
   const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
-    try {
-      const savedAuctions = localStorage.getItem('savedAuctions')
-      const savedSearchTerm = localStorage.getItem('lastSearchTerm')
-      
-      if (savedAuctions && savedSearchTerm) {
-        setAuctions(JSON.parse(savedAuctions))
-        setSearchTerm(savedSearchTerm)
-      }
-    } catch (err) {
-      console.warn('Unable to access localStorage:', err)
-      // Continue with empty state if localStorage is blocked
+    const savedAuctions = localStorage.getItem('savedAuctions')
+    const savedSearchTerm = localStorage.getItem('lastSearchTerm')
+    
+    if (savedAuctions && savedSearchTerm) {
+      setAuctions(JSON.parse(savedAuctions))
+      setSearchTerm(savedSearchTerm)
     }
   }, [])
 
@@ -43,14 +38,8 @@ function AuctionList({ username }) {
       const data = await response.json()
       setAuctions(data)
       
-      // Wrap localStorage operations in try-catch
-      try {
-        localStorage.setItem('savedAuctions', JSON.stringify(data))
-        localStorage.setItem('lastSearchTerm', searchTerm)
-      } catch (storageErr) {
-        console.warn('Unable to save to localStorage:', storageErr)
-        // Continue without saving to localStorage
-      }
+      localStorage.setItem('savedAuctions', JSON.stringify(data))
+      localStorage.setItem('lastSearchTerm', searchTerm)
       
     } catch (err) {
       setError(err.message)
