@@ -15,16 +15,6 @@ function AuctionList({ username }) {
   const [selectedAuction, setSelectedAuction] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
 
-  useEffect(() => {
-    const savedAuctions = localStorage.getItem('savedAuctions')
-    const savedSearchTerm = localStorage.getItem('lastSearchTerm')
-    
-    if (savedAuctions && savedSearchTerm) {
-      setAuctions(JSON.parse(savedAuctions))
-      setSearchTerm(savedSearchTerm)
-    }
-  }, [])
-
   const handleSearch = async (e) => {
     e.preventDefault()
     setLoading(true)
@@ -37,10 +27,6 @@ function AuctionList({ username }) {
       }
       const data = await response.json()
       setAuctions(data)
-      
-      localStorage.setItem('savedAuctions', JSON.stringify(data))
-      localStorage.setItem('lastSearchTerm', searchTerm)
-      
     } catch (err) {
       setError(err.message)
       console.error('Error fetching auctions:', err)
