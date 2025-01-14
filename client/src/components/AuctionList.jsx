@@ -15,6 +15,30 @@ function AuctionList({ username }) {
   const [selectedAuction, setSelectedAuction] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
 
+  useEffect(() => {
+    if (username) {
+      setLoading(true)
+      setError(null)
+      
+      fetch(`/api/auctions/search?player=${username}`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to fetch auctions')
+          }
+          return response.json()
+        })
+        .then(data => {
+          setAuctions(data)
+          setLoading(false)
+        })
+        .catch(err => {
+          setError(err.message)
+          console.error('Error fetching auctions:', err)
+          setLoading(false)
+        })
+    }
+  }, [username])
+
   const handleSearch = async (e) => {
     e.preventDefault()
     setLoading(true)
